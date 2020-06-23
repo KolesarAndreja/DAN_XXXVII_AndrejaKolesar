@@ -17,6 +17,9 @@ namespace DAN_XXXVII
         public SemaphoreSlim semaphore = new SemaphoreSlim(2);
         public Thread[] trucks = new Thread[10];
         public int count = 0;
+        public int count2 = 0;
+        private object obj = new object();
+
 
 
         public void DoShipment()
@@ -35,7 +38,7 @@ namespace DAN_XXXVII
             t1.Join();
             t2.Join();
 
-            Console.WriteLine("TRACKS LOADING: ");
+            Console.WriteLine("\nTRACKS LOADING: ");
             for (int i = 0; i < 10; i++)
             {
                 int br = bestRoutes[i];
@@ -94,7 +97,7 @@ namespace DAN_XXXVII
                 }
             }
             Console.WriteLine("All possible routes are shown in the file {0}", fileName);
-            Console.Write("MANAGER: \nBest routes are selected and truck drivers can start with truck loading and after that with driving.\nList of selected routes: ");
+            Console.Write("\nMANAGER: \nBest routes are selected and truck drivers can start with truck loading and after that with driving.\nList of selected routes: ");
             bestRoutes = bestRoutes.Distinct().ToList();
             bestRoutes.Sort();
             //displaying best routes
@@ -108,7 +111,7 @@ namespace DAN_XXXVII
         public void TruckWork(object route)
         {
             var name = Thread.CurrentThread.Name;
-            Console.WriteLine("{0} wants do loading ", name);
+            //Console.WriteLine("{0} wants do loading ", name);
             semaphore.Wait();
             Console.WriteLine("{0} has started loading", name);
             int loadingTime = random.Next(500, 5001);
@@ -121,23 +124,46 @@ namespace DAN_XXXVII
                 count++;
                 if (count == 10)
                 {
-                    Console.WriteLine("\nROUTES AND TRUCKS SCHEDULE");
+                    Console.WriteLine("\nROUTES AND TRUCKS SCHEDULE:");
                 }
             }
             while (count != 10)
             {
                 Thread.Sleep(0);
             }
-
             Console.WriteLine("{0} will drive through route {1}", name, route);
-            Delivery();
+
+            lock (fileName)
+            {
+                count--;
+                if(count == 0)
+                {
+                    Console.WriteLine("\nTRACK DELIVERY:");
+                }
+            }
+            while (count != 0)
+            {
+                Thread.Sleep(0);
+            }
+
+            int deliveryTime = DeliveryTime(name, route);
+            if(deliveryTime > 3000)
+            {
+                Console.WriteLine("ORDER ON ROUTE {0} CANCELED. {1} did not arrived in 3sec. Truck need 3s to come back to starting point",route, name );
+            }
+            else
+            {
+                Console.WriteLine("The {0} arrived at its destination {1}. Unloading time was {2}ms", name, route, Convert.ToInt32(loadingTime/1.5));
+            }
 
         }       
 
 
-        public void Delivery()
+        public int DeliveryTime(string name, object route)
         {
-            Stopwatch sw = new Stopwatch();
+            Console.WriteLine("The driver on a truck {0} has just started driving on route {1}. They can expect delivery between 500ms and 5sec", name, route);
+            int deliveryTime = random.Next(500, 5001);
+            return deliveryTime;
         }
     }
 }
