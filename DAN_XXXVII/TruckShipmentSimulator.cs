@@ -146,25 +146,31 @@ namespace DAN_XXXVII
                 Thread.Sleep(0);
             }
 
-            int deliveryTime = DeliveryTime(name, route);
-            if(deliveryTime > 3000)
+            Console.WriteLine("The driver on a truck {0} has just started driving on route {1}. They can expect delivery between 500ms and 5sec", name, route);
+            int deliveryTime = random.Next(500, 5001);
+            
+
+            if (deliveryTime > 3000)
             {
-                Console.WriteLine("ORDER ON ROUTE {0} CANCELED. {1} did not arrived in 3sec. Truck need 3s to come back to starting point",route, name );
+                Thread.Sleep(3000);
+                Console.WriteLine("ORDER ON ROUTE {0} CANCELED. {1} did not arrived in 3sec. Truck need 3s to come back to starting point. {2}",route, name, deliveryTime );
             }
             else
             {
+                Thread.Sleep(deliveryTime);
                 Console.WriteLine("The {0} arrived at its destination {1}. Unloading time was {2}ms", name, route, Convert.ToInt32(loadingTime/1.5));
             }
 
         }       
 
 
-        public int DeliveryTime(string name, object route)
-        {
-            Console.WriteLine("The driver on a truck {0} has just started driving on route {1}. They can expect delivery between 500ms and 5sec", name, route);
-            int deliveryTime = random.Next(500, 5001);
-            return deliveryTime;
-        }
+        //public int DeliveryTime(string name, object route)
+        //{
+        //    Console.WriteLine("The driver on a truck {0} has just started driving on route {1}. They can expect delivery between 500ms and 5sec", name, route);
+        //    int deliveryTime = random.Next(500, 5001);
+        //    Thread.Sleep(3000);
+        //    return deliveryTime;
+        //}
     }
 }
 
