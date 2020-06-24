@@ -12,16 +12,17 @@ namespace DAN_XXXVII
     class TruckShipmentSimulator
     {
         public Random random = new Random();
+        //fileName is also and locker in some parts
         private readonly string fileName = "PotentialRoutes.txt";
+        //list of best routes
         public List<int> bestRoutes = new List<int>();
         public SemaphoreSlim semaphore = new SemaphoreSlim(2);
-        public object locker = new object();
+        //array of threads. Every thread is representing one truck
         public Thread[] trucks = new Thread[10];
         public int count = 0;
+        public int semaphoreEnter;
+        public int semaphoreExit;
 
-        public bool isFree = true;
-        public int semaphoreCount;
-        public CountdownEvent countdown = new CountdownEvent(2);
 
 
 
@@ -47,11 +48,11 @@ namespace DAN_XXXVII
                 int br = bestRoutes[i];
                 trucks[i] = new Thread(TruckWork)
                 {
-                    Name = String.Format("Truck_{0}", i+1)
+                    Name = String.Format("Truck_{0}", i + 1)
                 };
                 trucks[i].Start(bestRoutes[i]);
             }
-        
+
         }
 
         /// <summary>
@@ -104,43 +105,52 @@ namespace DAN_XXXVII
             bestRoutes = bestRoutes.Distinct().ToList();
             bestRoutes.Sort();
             //displaying best routes
-            for(int i=0; i<10; i++)
+            for (int i = 0; i < 10; i++)
             {
                 Console.Write(bestRoutes[i] + " ");
             }
             Console.WriteLine();
         }
 
+
+        public void TwoByTwo()
+        {
+            while (true)
+            {
+                lock (fileName)
+                {
+                    semaphoreEnter++;
+                    if (semaphoreEnter > 2)
+                    {
+                        Thread.Sleep(0);
+                    }
+                    else
+                    {
+                        semaphoreExit++;
+                        break;
+                    }
+                }
+
+            }
+        }
+
+
         public void TruckWork(object route)
         {
             var name = Thread.CurrentThread.Name;
-            while (!isFree)
-            {
-                Thread.Sleep(0);
-            }
-
+            TwoByTwo();
             semaphore.Wait();
-            lock (locker)
-            {
-                semaphoreCount++;
-                if(semaphoreCount == 2)
-                {
-                    isFree = false;
-                }
-            }
             Console.WriteLine("{0} has started loading", name);
             int loadingTime = random.Next(500, 5001);
             Thread.Sleep(loadingTime);
             Console.WriteLine("{0} has finished loading", name);
-            lock (locker)
+            semaphore.Release();
+            semaphoreExit--;
+            if (semaphoreExit == 0)
             {
-                semaphore.Release();
-                semaphoreCount--;
-                if(semaphoreCount== 0)
-                {
-                    isFree = true;
-                }
+                semaphoreEnter = 0;
             }
+
             //finish with loading trucks, after that start with route assignment
             lock (fileName)
             {
@@ -160,7 +170,7 @@ namespace DAN_XXXVII
             lock (fileName)
             {
                 count--;
-                if(count == 0)
+                if (count == 0)
                 {
                     Console.WriteLine("\nTRACK DELIVERY:");
                 }
@@ -173,20 +183,20 @@ namespace DAN_XXXVII
             //truck delivery
             Console.WriteLine("The driver on a truck {0} has just started driving on route {1}. They can expect delivery between 500ms and 5sec.", name, route);
             int deliveryTime = random.Next(500, 5001);
-            
+
 
             if (deliveryTime > 3000)
             {
                 Thread.Sleep(3000);
-                Console.WriteLine("ORDER ON ROUTE {0} CANCELED. {1} did not arrived in 3sec. Truck need 3s to come back to starting point. {2}",route, name, deliveryTime );
+                Console.WriteLine("ORDER ON ROUTE {0} CANCELED. {1} did not arrived in 3sec. Truck need 3s to come back to starting point.", route, name, deliveryTime);
             }
             else
             {
                 Thread.Sleep(deliveryTime);
-                Console.WriteLine("The {0} arrived at its destination {1}. Unloading time was {2}ms.", name, route, Convert.ToInt32(loadingTime/1.5));
+                Console.WriteLine("The {0} arrived at its destination {1}. Unloading time was {2}ms.", name, route, Convert.ToInt32(loadingTime / 1.5));
             }
 
-        }       
+        }
     }
 }
 
