@@ -15,10 +15,13 @@ namespace DAN_XXXVII
         private readonly string fileName = "PotentialRoutes.txt";
         public List<int> bestRoutes = new List<int>();
         public SemaphoreSlim semaphore = new SemaphoreSlim(2);
+        public object locker = new object();
         public Thread[] trucks = new Thread[10];
         public int count = 0;
-        public int count2 = 0;
-        private object obj = new object();
+
+        public int free = 2;
+        public int semaphoreCount;
+        public CountdownEvent countdown = new CountdownEvent(2);
 
 
 
@@ -97,7 +100,7 @@ namespace DAN_XXXVII
                 }
             }
             Console.WriteLine("All possible routes are shown in the file {0}", fileName);
-            Console.Write("\nMANAGER: \nBest routes are selected and truck drivers can start with truck loading and after that with driving.\nList of selected routes: ");
+            Console.Write("\nMANAGER: \nBest routes are selected and drivers can start with loading.\nList of selected routes: ");
             bestRoutes = bestRoutes.Distinct().ToList();
             bestRoutes.Sort();
             //displaying best routes
@@ -111,14 +114,35 @@ namespace DAN_XXXVII
         public void TruckWork(object route)
         {
             var name = Thread.CurrentThread.Name;
-            //Console.WriteLine("{0} wants do loading ", name);
+            lock (locker)
+            {
+                semaphoreCount++;
+            }
+
+            lock (locker)
+            {
+                if (semaphoreCount > 2)
+                {
+                    Monitor.Wait(locker);
+                }
+            }
             semaphore.Wait();
+            free--;
             Console.WriteLine("{0} has started loading", name);
             int loadingTime = random.Next(500, 5001);
             Thread.Sleep(loadingTime);
             Console.WriteLine("{0} has finished loading", name);
+            free++;
             semaphore.Release();
+            lock (locker)
+            {
+                if (free == 2)
+                {
+                    Monitor.Pulse(locker);
+                }
+            }
 
+            //finish with loading trucks, after that start with route assignment
             lock (fileName)
             {
                 count++;
@@ -133,6 +157,7 @@ namespace DAN_XXXVII
             }
             Console.WriteLine("{0} will drive through route {1}", name, route);
 
+            //finish with route assignment and then start with driving
             lock (fileName)
             {
                 count--;
@@ -146,7 +171,8 @@ namespace DAN_XXXVII
                 Thread.Sleep(0);
             }
 
-            Console.WriteLine("The driver on a truck {0} has just started driving on route {1}. They can expect delivery between 500ms and 5sec", name, route);
+            //truck delivery
+            Console.WriteLine("The driver on a truck {0} has just started driving on route {1}. They can expect delivery between 500ms and 5sec.", name, route);
             int deliveryTime = random.Next(500, 5001);
             
 
@@ -158,19 +184,10 @@ namespace DAN_XXXVII
             else
             {
                 Thread.Sleep(deliveryTime);
-                Console.WriteLine("The {0} arrived at its destination {1}. Unloading time was {2}ms", name, route, Convert.ToInt32(loadingTime/1.5));
+                Console.WriteLine("The {0} arrived at its destination {1}. Unloading time was {2}ms.", name, route, Convert.ToInt32(loadingTime/1.5));
             }
 
         }       
-
-
-        //public int DeliveryTime(string name, object route)
-        //{
-        //    Console.WriteLine("The driver on a truck {0} has just started driving on route {1}. They can expect delivery between 500ms and 5sec", name, route);
-        //    int deliveryTime = random.Next(500, 5001);
-        //    Thread.Sleep(3000);
-        //    return deliveryTime;
-        //}
     }
 }
 
