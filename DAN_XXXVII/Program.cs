@@ -10,6 +10,9 @@ namespace DAN_XXXVII
     {
         static void Main(string[] args)
         {
+            TruckShipmentSimulator simulator = new TruckShipmentSimulator();
+            simulator.DoShipment();
+            Console.ReadLine();
         }
     }
 }
