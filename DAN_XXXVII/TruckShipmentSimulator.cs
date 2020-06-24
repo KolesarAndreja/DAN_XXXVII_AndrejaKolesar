@@ -19,7 +19,7 @@ namespace DAN_XXXVII
         public Thread[] trucks = new Thread[10];
         public int count = 0;
 
-        public int free = 2;
+        public bool isFree = true;
         public int semaphoreCount;
         public CountdownEvent countdown = new CountdownEvent(2);
 
@@ -114,34 +114,33 @@ namespace DAN_XXXVII
         public void TruckWork(object route)
         {
             var name = Thread.CurrentThread.Name;
+            while (!isFree)
+            {
+                Thread.Sleep(0);
+            }
+
+            semaphore.Wait();
             lock (locker)
             {
                 semaphoreCount++;
-            }
-
-            lock (locker)
-            {
-                if (semaphoreCount > 2)
+                if(semaphoreCount == 2)
                 {
-                    Monitor.Wait(locker);
+                    isFree = false;
                 }
             }
-            semaphore.Wait();
-            free--;
             Console.WriteLine("{0} has started loading", name);
             int loadingTime = random.Next(500, 5001);
             Thread.Sleep(loadingTime);
             Console.WriteLine("{0} has finished loading", name);
-            free++;
-            semaphore.Release();
             lock (locker)
             {
-                if (free == 2)
+                semaphore.Release();
+                semaphoreCount--;
+                if(semaphoreCount== 0)
                 {
-                    Monitor.Pulse(locker);
+                    isFree = true;
                 }
             }
-
             //finish with loading trucks, after that start with route assignment
             lock (fileName)
             {
