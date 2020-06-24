@@ -11,6 +11,7 @@ namespace DAN_XXXVII
 {
     class TruckShipmentSimulator
     {
+        #region fields 
         public Random random = new Random();
         //fileName is also and locker in some parts
         private readonly string fileName = "PotentialRoutes.txt";
@@ -19,15 +20,19 @@ namespace DAN_XXXVII
         public SemaphoreSlim semaphore = new SemaphoreSlim(2);
         //array of threads. Every thread is representing one truck
         public Thread[] trucks = new Thread[10];
+        //this variables are used in TruckWork method
         public int count = 0;
         public int semaphoreEnter;
-        public int semaphoreExit;
+        public int forSemaphoreExit;
+        #endregion
 
-
-
-
+        #region DoShipment - creating treads
+        /// <summary>
+        /// Method for creating and joining threads
+        /// </summary>
         public void DoShipment()
         {
+            //create tread that generates 1000 random numbers in range [1,5000]
             Thread t1 = new Thread(NumberGenerator)
             {
                 Name = "number_generator"
@@ -54,7 +59,9 @@ namespace DAN_XXXVII
             }
 
         }
+        #endregion
 
+        #region Finding best routes
         /// <summary>
         /// Generates 1000 numbers in range [1,5000] and logs them into file PotentialRoutes.txt
         /// </summary>
@@ -102,7 +109,9 @@ namespace DAN_XXXVII
             }
             Console.WriteLine("All possible routes are shown in the file {0}", fileName);
             Console.Write("\nMANAGER: \nBest routes are selected and drivers can start with loading.\nList of selected routes: ");
+            //take just distinct routes
             bestRoutes = bestRoutes.Distinct().ToList();
+            //sort routes and take the best (first 10)
             bestRoutes.Sort();
             //displaying best routes
             for (int i = 0; i < 10; i++)
@@ -111,8 +120,12 @@ namespace DAN_XXXVII
             }
             Console.WriteLine();
         }
+        #endregion
 
-
+        #region Truck loading and delivering
+        /// <summary>
+        /// Method that allows two by two threads to go further 
+        /// </summary>
         public void TwoByTwo()
         {
             while (true)
@@ -126,18 +139,21 @@ namespace DAN_XXXVII
                     }
                     else
                     {
-                        semaphoreExit++;
+                        forSemaphoreExit++;
                         break;
                     }
                 }
-
             }
         }
-
-
+        /// <summary>
+        /// This method is representing everything that single truck must do in application (loading, taking route, driving and unloading)
+        /// </summary>
+        /// <param name="route"></param>
         public void TruckWork(object route)
         {
+            //LOADING...
             var name = Thread.CurrentThread.Name;
+            //allow only two trucks to be loaded in same time
             TwoByTwo();
             semaphore.Wait();
             Console.WriteLine("{0} has started loading", name);
@@ -145,13 +161,15 @@ namespace DAN_XXXVII
             Thread.Sleep(loadingTime);
             Console.WriteLine("{0} has finished loading", name);
             semaphore.Release();
-            semaphoreExit--;
-            if (semaphoreExit == 0)
+            forSemaphoreExit--;
+            if (forSemaphoreExit == 0)
             {
+                //reset semaphoreEnter to 0
                 semaphoreEnter = 0;
             }
 
             //finish with loading trucks, after that start with route assignment
+            //ROUTE ASSIGNMENT...
             lock (fileName)
             {
                 count++;
@@ -167,6 +185,7 @@ namespace DAN_XXXVII
             Console.WriteLine("{0} will drive through route {1}", name, route);
 
             //finish with route assignment and then start with driving
+            //DRIVING TRUCK...
             lock (fileName)
             {
                 count--;
@@ -180,11 +199,9 @@ namespace DAN_XXXVII
                 Thread.Sleep(0);
             }
 
-            //truck delivery
+            //UNLOADING...
             Console.WriteLine("The driver on a truck {0} has just started driving on route {1}. They can expect delivery between 500ms and 5sec.", name, route);
             int deliveryTime = random.Next(500, 5001);
-
-
             if (deliveryTime > 3000)
             {
                 Thread.Sleep(3000);
@@ -197,6 +214,7 @@ namespace DAN_XXXVII
             }
 
         }
+        #endregion
     }
 }
 
